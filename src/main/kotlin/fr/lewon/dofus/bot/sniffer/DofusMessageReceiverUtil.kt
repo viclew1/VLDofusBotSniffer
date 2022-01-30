@@ -9,6 +9,7 @@ import fr.lewon.dofus.bot.sniffer.model.messages.INetworkMessage
 import fr.lewon.dofus.export.builder.VldbIdByNameExportPackTaskBuilder
 import org.reflections.Reflections
 import java.io.File
+import java.net.NetworkInterface
 
 object DofusMessageReceiverUtil {
 
@@ -36,4 +37,19 @@ object DofusMessageReceiverUtil {
             .associateBy { (MessageIdByName.getId(it.simpleName) ?: error("Couldn't find id for [${it.simpleName}]")) }
     }
 
+    fun getNetworkInterfaceNames() : List<String> {
+        val result = mutableListOf<String>();
+        val nis = NetworkInterface.getNetworkInterfaces()
+
+        while (nis.hasMoreElements())
+        {
+            val ni = nis.nextElement();
+
+            if (ni.isUp && !ni.isLoopback) {
+                result.add(ni.displayName)
+            }
+        }
+
+        return result
+    }
 }

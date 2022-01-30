@@ -4,21 +4,21 @@ import fr.lewon.dofus.bot.core.io.stream.ByteArrayReader
 import fr.lewon.dofus.bot.core.logs.VldbLogger
 import fr.lewon.dofus.bot.sniffer.managers.MessageIdByName
 import fr.lewon.dofus.bot.sniffer.store.EventStore
+
 import org.apache.commons.codec.binary.Hex
+
+import org.pcap4j.core.*
 import org.pcap4j.core.BpfProgram.BpfCompileMode
-import org.pcap4j.core.PacketListener
-import org.pcap4j.core.PcapHandle
-import org.pcap4j.core.PcapNetworkInterface
 import org.pcap4j.core.PcapNetworkInterface.PromiscuousMode
-import org.pcap4j.core.Pcaps
 import org.pcap4j.packet.TcpPacket
+
 import java.net.InetAddress
 import java.net.NetworkInterface
 import java.util.*
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.locks.ReentrantLock
 
-class DofusMessageReceiver : Thread() {
+class DofusMessageReceiver(private val networkInterfaceName: String? = null) : Thread() {
 
     companion object {
         private const val BIT_RIGHT_SHIFT_LEN_PACKET_ID = 2
@@ -93,7 +93,15 @@ class DofusMessageReceiver : Thread() {
     }
 
     override fun run() {
-        handle.loop(-1, packetListener)
+        try {
+            handle.loop(-1, packetListener)
+        }
+        catch (ex: PcapNativeException) {
+        }
+        catch (ex: InterruptedException) {
+        }
+        catch (ex: NotOpenException) {
+        }
     }
 
     override fun interrupt() {
@@ -148,9 +156,16 @@ class DofusMessageReceiver : Thread() {
             val ni = nis.nextElement()
             if (ni.isUp && !ni.isLoopback) {
                 val ias = ni.inetAddresses
+
                 while (ias.hasMoreElements() && currentAddress == null) {
                     val ia = ias.nextElement()
-                    if (ia.isSiteLocalAddress && !ia.isLoopbackAddress) currentAddress = ia
+
+                    if (ia.isSiteLocalAddress &&
+                        !ia.isLoopbackAddress &&
+                        !ni.displayName.contains("VMnet") ||
+                        (networkInterfaceName != null && ni.displayName == networkInterfaceName)) {
+                        currentAddress = ia
+                    }
                 }
             }
         }
