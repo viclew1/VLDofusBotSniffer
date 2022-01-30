@@ -37,14 +37,12 @@ object DofusMessageReceiverUtil {
             .associateBy { (MessageIdByName.getId(it.simpleName) ?: error("Couldn't find id for [${it.simpleName}]")) }
     }
 
-    fun getNetworkInterfaceNames() : List<String> {
-        val result = mutableListOf<String>();
+    fun getNetworkInterfaceNames(): List<String> {
+        val result = mutableListOf<String>()
         val nis = NetworkInterface.getNetworkInterfaces()
 
-        while (nis.hasMoreElements())
-        {
-            val ni = nis.nextElement();
-
+        while (nis.hasMoreElements()) {
+            val ni = nis.nextElement()
             if (ni.isUp && !ni.isLoopback) {
                 result.add(ni.displayName)
             }
