@@ -12,7 +12,7 @@ import java.util.concurrent.locks.ReentrantLock
 class EventStore {
 
     private val eventQueue = ArrayBlockingQueue<INetworkMessage>(QUEUE_SIZE)
-    private val lock = ReentrantLock()
+    private val lock = ReentrantLock(true)
     private val waitLock = ReentrantLock()
 
     private var messageWaiter: AbstractMessageWaiter? = null
@@ -21,12 +21,12 @@ class EventStore {
     fun addSocketEvent(dofusEvent: INetworkMessage, connection: DofusConnection) {
         try {
             lock.lockInterruptibly()
+            getHandlers(dofusEvent.javaClass).forEach {
+                it.onEventReceived(dofusEvent, connection)
+            }
             if (!eventQueue.offer(dofusEvent)) {
                 eventQueue.poll()
                 eventQueue.offer(dofusEvent)
-            }
-            getHandlers(dofusEvent.javaClass).forEach {
-                it.onEventReceived(dofusEvent, connection)
             }
             messageWaiter?.takeIf { !it.consumed }?.onMessageReceived(dofusEvent)
         } finally {
